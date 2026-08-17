@@ -85,4 +85,4 @@ Maintainers only:
 1. Bump `@version` in `mix.exs`.
 2. Move `## Unreleased` entries under a new version heading in `CHANGELOG.md`.
 3. Tag the commit `vX.Y.Z` and push the tag. The publish workflow runs the checks and
-   `mix hex.publish`.
+   `mix hex.publish --yes`.

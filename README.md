@@ -13,12 +13,19 @@ a public repository without rearranging anything.
 
 ## Why they live here
 
-They are versioned next to the API contract they mirror, so a change to a router in
-`backend/app/routers/` and the client change that follows it can be reviewed together.
-Splitting a directory out later preserves its history:
+All three clients are generated from the same live OpenAPI schema, so a single API
+contract change means updating three codebases. Keeping them in one repository makes
+that an atomic commit rather than three separate PRs.
+
+The backend API itself lives in a separate private repository, so client↔backend
+changes still span two repos — this monorepo at least keeps client↔client changes
+atomic. Each directory is a **self-contained package root** (its own README, licence,
+changelog, CI and release workflow), so it can be split out to a public repository
+later without rearranging anything. Splitting a directory out later preserves its
+history:
 
 ```bash
-git subtree split --prefix=clients/python -b kyccentral-python
+git subtree split --prefix=python -b kyccentral-python
 ```
 
 ## Shared design
@@ -66,16 +73,16 @@ not a clean one.
 Each directory is independent; see its own `CONTRIBUTING.md`.
 
 ```bash
-cd clients/python     && pip install -e ".[dev]" && pytest
-cd clients/javascript && npm install             && npm test
-cd clients/elixir     && mix deps.get            && mix test
+cd python     && pip install -e ".[dev]" && pytest
+cd javascript && npm install             && npm test
+cd elixir     && mix deps.get            && mix test
 ```
 
 ## Keeping them in step with the API
 
 These clients are generated from, and checked against, the live schema at
-`GET /openapi.json`. When a public endpoint is added, changed or removed in
-`backend/app/routers/`:
+`GET /openapi.json` (served by the backend API, which lives in a separate private
+repository). When a public endpoint is added, changed or removed in the backend:
 
 1. Update the resource module in all three clients, plus their endpoint tables.
 2. Add a routing test in each suite — they all have a table-driven test that asserts each
@@ -84,3 +91,25 @@ These clients are generated from, and checked against, the live schema at
 
 Endpoints registered with `include_in_schema=False` are internal (billing, workspaces,
 PDF, admin, investigator) and are deliberately **not** covered.
+
+## CI
+
+Path-filtered workflows under `.github/workflows/` ensure a change to one client only
+runs that client's checks:
+
+| Workflow | Paths | What it runs |
+|---|---|---|
+| `ci-python.yml` | `python/**` | pytest, ruff, mypy on Python 3.10–3.13 |
+| `ci-javascript.yml` | `javascript/**` | test, typecheck, lint, format, build on Node 18/20/22 |
+| `ci-elixir.yml` | `elixir/**` | mix test, format, credo, dialyzer |
+
+You can trigger any of them manually with **Run workflow** → `workflow_dispatch`.
+
+## Publishing
+
+Releasing all three clients from a single `vX.Y.Z` tag is documented in
+[PUBLISHING.md](PUBLISHING.md), including the one-time registry setup (PyPI trusted
+publishing, npm trusted publishing, Hex API key) and the per-release checklist.
+In short: bump the version in each client, update the `## Unreleased` changelog entries,
+commit, tag `vX.Y.Z`, and push the tag — the publish workflow verifies each changed client and
+publishes it automatically.

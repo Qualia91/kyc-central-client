@@ -1,0 +1,169 @@
+name: Publish
+
+# Triggered by version tags pushed to the default branch.
+# A monorepo with three clients: a single v* tag publishes every client whose
+# directory changed since the previous v* tag. To force-publish everything,
+# delete the previous tag and retag.
+#
+# Secrets / trust (configure once per repo, or in the publishing-org):
+#   HEX_API_KEY     — https://hex.pm/dashboard → API keys
+# npm publishes via OIDC trusted publishing — no secret; configure the trust at
+#   https://www.npmjs.com/settings/@kyccentral/package → Trusted Publishing
+# PyPI uses trusted publishing (OIDC) — no secret needed, configured at
+#   https://pypi.org/manage/kyccentral/settings/publishing/
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# Don't cancel in-progress publishes — a cancelled release leaves things half-done.
+concurrency:
+  group: publish-${{ matrix.language }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # 'id-token: write' lets npm exchange the GitHub OIDC token for a short-lived
+    # npm token via trusted publishing (no NPM_TOKEN secret required).
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript, elixir]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history to diff tags
+
+      - name: Determine previous tag
+        id: prev
+        run: |
+          # The most recent tag before the current one determines what changed.
+          tag=${GITHUB_REF_NAME#refs/tags/}
+          prev=$(git tag --sort=-creatordate --list "v*" | grep -v "^${tag}$" | head -n1)
+          echo "previous=${prev:-none}" >> "$GITHUB_OUTPUT"
+          echo "current=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether this client changed
+        id: changed
+        shell: bash
+        run: |
+          dir=${{ matrix.language }}
+          prev="${{ steps.prev.outputs.previous }}"
+          cur="${{ steps.prev.outputs.current }}"
+          if [[ "$prev" == "none" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "No previous tag — doing a first publish."
+          elif git diff --quiet "$prev".."$cur" -- "$dir/" ; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes in $dir/ since $prev — skipping publish."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Changes detected in $dir/ since $prev."
+          fi
+
+      - name: Skip if unchanged
+        if: steps.changed.outputs.changed != 'true'
+        run: exit 0
+
+      - name: Set up Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        if: matrix.language == 'javascript'
+        uses: actions/setup-node@v4
+        with:
+          # npm >= 11 is required for OIDC trusted publishing;
+          # Node 24 ships with npm 11.6+.
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Enable npm trusted publishing (strip npmrc _authToken)
+        if: matrix.language == 'javascript'
+        # setup-node writes an empty _authToken= line to .npmrc when
+        # NODE_AUTH_TOKEN is unset (the OIDC case). That makes npm try classic
+        # auth with an empty token instead of doing the OIDC exchange. Removing
+        # the line lets the npm CLI initiate trusted publishing automatically.
+        run: |
+          npmrc="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+          sed -i '/_authToken/d' "$npmrc" 2>/dev/null || true
+
+      - name: Set up Elixir
+        if: matrix.language == 'elixir'
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.17"
+          otp-version: "27.3"
+          rebar3-mk: true
+
+      - name: Verify — Python
+        if: matrix.language == 'python'
+        run: |
+          pip install -e "python/.[dev]"
+          pytest
+          ruff check .
+          ruff format --check .
+          mypy
+        working-directory: python
+
+      - name: Verify — JavaScript
+        if: matrix.language == 'javascript'
+        run: |
+          npm ci
+          npm test
+          npm run typecheck
+          npm run lint
+          npm run format:check
+          npm run build
+        working-directory: javascript
+
+      - name: Verify — Elixir
+        if: matrix.language == 'elixir'
+        run: |
+          mix deps.get
+          mix test
+          mix format --check-formatted
+          mix credo --strict
+          mix dialyzer
+        working-directory: elixir
+
+      # -------------------------------------------------------------------
+      # Publish
+      # -------------------------------------------------------------------
+
+      - name: Build — Python (sdist + wheel)
+        if: matrix.language == 'python'
+        run: |
+          pip install build
+          python -m build
+        working-directory: python
+
+      - name: Publish — Python (trusted publishing)
+        if: matrix.language == 'python'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          directory: python/dist
+          print-hash: true
+
+      # The JS verify step already runs npm run build, so dist/ exists.
+      # No NODE_AUTH_TOKEN is set — npm uses OIDC trusted publishing instead.
+      - name: Publish — JavaScript (npm + provenance)
+        if: matrix.language == 'javascript'
+        run: npm publish --provenance --access public
+        working-directory: javascript
+
+      - name: Publish — Elixir (Hex)
+        if: matrix.language == 'elixir'
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+          MIX_ENV: prod
+        run: mix hex.publish --yes
+        working-directory: elixir
