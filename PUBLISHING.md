@@ -137,6 +137,12 @@ Wait 5–10 minutes, then check:
   Requires npm CLI 11.6+ (Node 24 ships npm 11.6).
 - **PyPI trusted publishing**: requires the tag to be pushed from the default branch
   (`main`). If you publish from a fork, use an API token instead.
+- **Pin action versions**: `pypa/gh-action-pypi-publish` is pinned by full commit
+  SHA in `publish.yml` (currently `v1.14.2`) rather than the moving `@release/v1`
+  tag. The action normalizes its inputs to kebab-case each major release (the
+  `directory` input was removed and replaced by `packages-dir`), so pinning to a
+  tag/SHA prevents an upstream rewrite from silently breaking your publish. If you
+  deliberately keep `@release/v1`, be sure the `packages-dir` input is being used.
 - **Hex key**: rotate this just like any other secret; `HEX_API_KEY` is not tied to a
   specific version. The publish step runs in the default `:dev` env (not `prod`) so
   that `ex_doc`, declared `only: :dev` in `elixir/mix.exs`, is available and
