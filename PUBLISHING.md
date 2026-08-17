@@ -2,7 +2,7 @@
 
 All three clients are published from this monorepo via a single `vX.Y.Z` git tag.
 The `publish.yml` workflow runs the full test suite for each client whose directory
-changed since the previous tag, then publishes it to its registry.
+changed since the previous `v*` tag, then publishes it to its registry.
 
 | Language | Package | Registry |
 |---|---|---|
@@ -19,7 +19,7 @@ registries).
 
 PyPI supports [trusted publishing](https://docs.pypi.org/trusted-publishers/) via OIDC,
 so you do **not** need to create or store an API token. Instead, register this GitHub
-repo as a trusted publisher:
+repo as a trusted publisher: 
 
 1. Go to <https://pypi.org/manage/kyccentral/settings/publishing/> (you must own the
    `kyccentral` project on PyPI first).
@@ -38,10 +38,13 @@ secrets to rotate.
 ### npm (trusted publishing)
 
 npm supports [trusted publishing](https://docs.npmjs.com/trusted-publishers/) via OIDC,
-just like PyPI — no API token to store or rotate.
+just like PyPI — no API token to store or rotate. 
 
-1. Ensure you own the `@kyccentral/sdk` package on npm under your account (publish
-   once manually or claim it through the npm UI).
+> ⚠️ **If you skip the one-time setup below, `npm publish --provenance` fails with
+> `ENEEDAUTH` ("This command requires you to be logged in to
+> https://registry.npmjs.org"). The workflow cannot fix this for you.**
+
+1. Ensure you **own** the `@kyccentral` scope (and the `@kyccentral/sdk` package) on npm.
 2. On <https://www.npmjs.com/>, go to your package settings for `@kyccentral/sdk`
    → **Trusted Publishing**.
 3. Click **Add trusted publisher**.
@@ -52,12 +55,21 @@ just like PyPI — no API token to store or rotate.
    - Allowed actions: `npm publish` (and `npm stage publish` if you use snapshots)
 5. Click **Add**.
 
-Requirements: npm CLI 11.5.1+ (Node 22.14+; the publish workflow uses Node 24). The
-workflow's `permissions: id-token: write` lets npm exchange the GitHub OIDC token for a
-short-lived npm token automatically — no `NPM_TOKEN` secret is stored in GitHub.
+Requirements: npm CLI 11.6+ (Node 22.14+; the publish workflow uses Node 24, which
+ships npm 11.6+). The workflow's `permissions: id-token: write` lets npm exchange the
+GitHub OIDC token for a short-lived npm token automatically — no `NPM_TOKEN` secret is
+stored in GitHub. The workflow deliberately does **not** set `registry-url` on
+`actions/setup-node`, so no `_authToken` line is ever written to `.npmrc` and npm
+performs the OIDC exchange itself rather than falling back to classic auth.
 `npm publish --provenance` is still used so every release is signed with an
-[SLSA](https://slsa.dev/) attestation tied to this repo and tag (the `provenance: true`
+[SLSA](https://slsa.dev/) attestation tied to this repo and the tag (the `provenance: true`
 flag in `package.json` also enables this).
+
+If OIDC trusted publishing cannot be used (e.g. the package is owned by an org that
+forbids it), fall back to a classic publish token: create an **Automation** token on
+npm with publish access, store it as the **`NPM_TOKEN`** repository secret, and set
+`env: NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` on the publish step. With a token
+present, the workflow's OIDC path is bypassed automatically.
 
 ### Hex (API key)
 
@@ -115,16 +127,20 @@ Wait 5–10 minutes, then check:
 
 - **npm trusted publishing**: the `id-token: write` permission lets npm exchange the
   GitHub OIDC token for a short-lived npm token — no `NPM_TOKEN` secret is stored. The
-  workflow strips setup-node's empty `_authToken` line from `.npmrc` so the npm CLI
-  initiates the OIDC exchange instead of failing with `ENEEDAUTH`. `--provenance`
-  (also set in `package.json`) generates an [SLSA](https://slsa.dev/) attestation linking
-  the package to this repo and the release tag; npm shows a "View transparency details"
-  link on the package page. Requires npm CLI 11.5.1+ (Node 22.14+; the workflow uses
-  Node 24).
+  workflow does **not** set `registry-url` on `setup-node` and does **not** leave a
+  `_authToken` line in `.npmrc`, so the npm CLI initiates the OIDC exchange itself
+  instead of failing with `ENEEDAUTH` (classic-auth fallback). If npm still reports
+  `ENEEDAUTH`, the trusted publisher on npmjs.com is either not configured or doesn't
+  match this repo/workflow/file. `--provenance` (also set in `package.json`) generates
+  an [SLSA](https://slsa.dev/) attestation linking the package to this repo and the
+  release tag; npm shows a "View transparency details" link on the package page.
+  Requires npm CLI 11.6+ (Node 24 ships npm 11.6).
 - **PyPI trusted publishing**: requires the tag to be pushed from the default branch
   (`main`). If you publish from a fork, use an API token instead.
 - **Hex key**: rotate this just like any other secret; `HEX_API_KEY` is not tied to a
-  specific version.
+  specific version. The publish step runs in the default `:dev` env (not `prod`) so
+  that `ex_doc`, declared `only: :dev` in `elixir/mix.exs`, is available and
+  `mix hex.publish` can generate HexDocs via the `mix docs` task.
 - **Version bump discipline**: even if only one language changed, bump only that one's
   version. The publish workflow skips clients whose directory is unchanged since the
   previous tag.

@@ -80,20 +80,21 @@ jobs:
         if: matrix.language == 'javascript'
         uses: actions/setup-node@v4
         with:
-          # npm >= 11 is required for OIDC trusted publishing;
-          # Node 24 ships with npm 11.6+.
+          # npm >= 11.6 is required for OIDC trusted publishing;
+          # Node 24 ships with npm 11.6+. registry-url is deliberately NOT
+          # set: setup-node would write an (empty) _authToken line into .npmrc,
+          # which makes npm attempt classic auth and fail with ENEEDAUTH
+          # instead of performing the OIDC token exchange.
           node-version: "24"
-          registry-url: "https://registry.npmjs.org"
 
-      - name: Enable npm trusted publishing (strip npmrc _authToken)
+      - name: Verify npm OIDC readiness
         if: matrix.language == 'javascript'
-        # setup-node writes an empty _authToken= line to .npmrc when
-        # NODE_AUTH_TOKEN is unset (the OIDC case). That makes npm try classic
-        # auth with an empty token instead of doing the OIDC exchange. Removing
-        # the line lets the npm CLI initiate trusted publishing automatically.
         run: |
-          npmrc="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
-          sed -i '/_authToken/d' "$npmrc" 2>/dev/null || true
+          echo "npm $(npm --version) / node $(node --version)"
+          # No NODE_AUTH_TOKEN is set and no .npmrc auth line is written, so
+          # `npm publish` below performs the GitHub Actions OIDC exchange
+          # itself (trusted publishing). This requires npm >= 11.6.
+          echo "NODE_AUTH_TOKEN is ${NODE_AUTH_TOKEN:-<unset (good — OIDC will be used)>}"
 
       - name: Set up Elixir
         if: matrix.language == 'elixir'
@@ -106,7 +107,7 @@ jobs:
       - name: Verify — Python
         if: matrix.language == 'python'
         run: |
-          pip install -e "python/.[dev]"
+          pip install -e ".[dev]"
           pytest
           ruff check .
           ruff format --check .
@@ -163,6 +164,9 @@ jobs:
         if: matrix.language == 'elixir'
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
-          MIX_ENV: prod
+        # Do NOT set MIX_ENV=prod: ex_doc is `only: :dev`, so the `mix docs`
+        # task (used by `mix hex.publish` to generate HexDocs) is unavailable
+        # in prod and publishes fail. Running in the default :dev env keeps
+        # ex_doc available and still produces correct package metadata.
         run: mix hex.publish --yes
         working-directory: elixir
