@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: API reference
+    url: https://kyccentral.co.uk/api-docs
+    about: Endpoint reference, request and response schemas.
+  - name: Account, billing and API keys
+    url: https://kyccentral.co.uk/account
+    about: Generate or revoke a key, check your plan and quota.
+  - name: Report a security vulnerability
+    url: https://github.com/qualia91/kyccentral-js/security/advisories/new
+    about: Please report security issues privately, not as a public issue.

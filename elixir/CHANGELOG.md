@@ -1,0 +1,36 @@
+# Changelog
+
+All notable changes to this project are documented here.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
+project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## Unreleased
+
+## 0.1.0 — 2026-08-13
+
+First public release.
+
+### Added
+
+- `KYCCentral.new/1` plus resource modules covering every documented `/v1` endpoint:
+  `Companies`, `KYC`, `Jobs`, `RuleSets`, `Rules`, `Sanctions`, `News`, `OffshoreLeaks`,
+  `FCA`, `GLEIF`, `IndividualInsolvency`, `Charity`, `HMRCVat`, `Jurisdictions`,
+  `OffshoreJurisdictions`, `Analysis`, `Docs`, and health.
+- `KYCCentral.Assessment` struct with `RiskFlag` and `RuleResult`, atom severities and
+  statuses, and helpers: `clear?/1`, `partial?/1`, `flags_at/2`, `flags_at_or_above/2`,
+  `has_flag?/2`, `flag/2`, `rules_with_status/2`.
+- Transparent polling of queued assessments: a `202 Accepted` job response is polled to
+  completion and returned as a finished `Assessment`. Opt out with `wait: false`.
+- `KYCCentral.Error`, a single exception struct carrying a `:kind` atom, so failures
+  pattern-match without a tree of exception modules. Includes `:retry_after` on rate
+  limits and flattened FastAPI validation detail.
+- Automatic retries with exponential backoff and jitter for timeouts, connection errors
+  and retryable statuses, honouring `Retry-After`. Client errors are never retried.
+- Default transport on OTP's `:httpc` with TLS verification configured explicitly
+  (`verify_peer`, OS trust store, hostname checking, TLS 1.2/1.3), leaving Jason as the
+  only runtime dependency.
+- `:http` option to swap in Req, Finch, Tesla or a test stub.
+- API key resolution from `KYCCENTRAL_API_KEY`, base URL from `KYCCENTRAL_BASE_URL`.
+- Anonymous use for endpoints that permit it, so the library can be tried without an
+  account.

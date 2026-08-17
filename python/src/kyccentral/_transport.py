@@ -1,0 +1,328 @@
+"""HTTP plumbing shared by the sync and async clients.
+
+Everything here is internal: the public surface is :mod:`kyccentral.client` and
+:mod:`kyccentral.errors`. Kept in one module so that retry policy, error mapping
+and header construction cannot drift between the two client flavours.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import os
+import platform
+import random
+import time
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from typing import Any
+from urllib.parse import quote
+
+import httpx
+
+from ._version import __version__
+from .errors import APIConnectionError, APITimeoutError, status_error_from_response
+
+DEFAULT_BASE_URL = "https://api.kyccentral.co.uk"
+"""Production API. Override with ``base_url=`` or ``KYCCENTRAL_BASE_URL``."""
+
+API_PREFIX = "/v1"
+"""Every business endpoint is versioned. ``/health`` deliberately is not."""
+
+DEFAULT_TIMEOUT = 30.0
+DEFAULT_MAX_RETRIES = 2
+
+_RETRYABLE_STATUSES = frozenset({408, 429, 500, 502, 503, 504})
+_INITIAL_BACKOFF = 0.5
+_MAX_BACKOFF = 8.0
+
+API_KEY_ENV = "KYCCENTRAL_API_KEY"
+BASE_URL_ENV = "KYCCENTRAL_BASE_URL"
+
+
+def _default_user_agent() -> str:
+    return (
+        f"kyccentral-python/{__version__} "
+        f"(httpx/{httpx.__version__}; python/{platform.python_version()})"
+    )
+
+
+def _clean_params(params: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Drop unset query parameters.
+
+    ``None`` means "caller did not supply this", which must not be sent as the
+    literal string ``None``. Empty sequences are dropped too: the API's
+    repeatable parameters (``confirmed_media_url``, …) default to empty anyway,
+    and sending nothing keeps URLs short.
+    """
+    if not params:
+        return {}
+    cleaned: dict[str, Any] = {}
+    for key, value in params.items():
+        if value is None:
+            continue
+        if isinstance(value, (list, tuple)):
+            values = [v for v in value if v is not None]
+            if not values:
+                continue
+            cleaned[key] = values
+        else:
+            cleaned[key] = value
+    return cleaned
+
+
+def _retry_delay(attempt: int, response: httpx.Response | None) -> float:
+    """Seconds to wait before the next attempt.
+
+    Honours ``Retry-After`` when the API sends one (it does on 429), otherwise
+    backs off exponentially with full jitter so that a fleet of clients recovering
+    from the same outage does not retry in lockstep.
+    """
+    if response is not None:
+        raw = response.headers.get("Retry-After")
+        if raw:
+            try:
+                return max(0.0, min(float(raw), _MAX_BACKOFF))
+            except ValueError:
+                pass
+    ceiling = min(_INITIAL_BACKOFF * (2**attempt), _MAX_BACKOFF)
+    return random.uniform(ceiling / 2, ceiling)
+
+
+def _decode(response: httpx.Response) -> Any:
+    """Decode a response body, tolerating empty and non-JSON payloads."""
+    if response.status_code == 204 or not response.content:
+        return None
+    content_type = response.headers.get("content-type", "")
+    if "json" in content_type:
+        try:
+            return response.json()
+        except ValueError:
+            return response.text
+    return response.text
+
+
+@dataclass(frozen=True)
+class ClientConfig:
+    """Resolved connection settings shared by a client and its resources."""
+
+    api_key: str | None
+    base_url: str
+    timeout: float
+    max_retries: int
+    default_headers: Mapping[str, str]
+
+    @classmethod
+    def resolve(
+        cls,
+        api_key: str | None,
+        base_url: str | None,
+        timeout: float,
+        max_retries: int,
+        default_headers: Mapping[str, str] | None,
+    ) -> ClientConfig:
+        resolved_key = api_key if api_key is not None else os.environ.get(API_KEY_ENV) or None
+        resolved_base = base_url or os.environ.get(BASE_URL_ENV) or DEFAULT_BASE_URL
+        if max_retries < 0:
+            raise ValueError("max_retries must be >= 0")
+        if timeout <= 0:
+            raise ValueError("timeout must be > 0")
+        return cls(
+            api_key=resolved_key,
+            base_url=resolved_base.rstrip("/"),
+            timeout=timeout,
+            max_retries=max_retries,
+            default_headers=dict(default_headers or {}),
+        )
+
+    def url_for(self, path: str, versioned: bool = True) -> str:
+        prefix = API_PREFIX if versioned else ""
+        return f"{self.base_url}{prefix}/{path.lstrip('/')}"
+
+    def headers(self) -> dict[str, str]:
+        headers: dict[str, str] = {
+            "Accept": "application/json",
+            "User-Agent": _default_user_agent(),
+        }
+        headers.update(self.default_headers)
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        return headers
+
+
+class _BaseTransport:
+    """Shared retry bookkeeping. Subclasses supply the actual I/O."""
+
+    def __init__(self, config: ClientConfig) -> None:
+        self._config = config
+
+    @property
+    def config(self) -> ClientConfig:
+        return self._config
+
+    def _should_retry(self, attempt: int, status_code: int) -> bool:
+        return attempt < self._config.max_retries and status_code in _RETRYABLE_STATUSES
+
+    def _finish(
+        self,
+        response: httpx.Response,
+        method: str,
+        url: str,
+    ) -> Any:
+        body = _decode(response)
+        if response.is_success:
+            return body
+        raise status_error_from_response(
+            response.status_code,
+            body,
+            response.headers,
+            method=method,
+            url=url,
+        )
+
+
+class SyncTransport(_BaseTransport):
+    """Blocking transport backed by :class:`httpx.Client`."""
+
+    def __init__(self, config: ClientConfig, http_client: httpx.Client | None = None) -> None:
+        super().__init__(config)
+        self._owns_client = http_client is None
+        self._http = http_client or httpx.Client(timeout=config.timeout, follow_redirects=True)
+
+    def request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: Mapping[str, Any] | None = None,
+        json: Any = None,
+        versioned: bool = True,
+    ) -> Any:
+        url = self._config.url_for(path, versioned)
+        headers = self._config.headers()
+        query = _clean_params(params)
+
+        for attempt in range(self._config.max_retries + 1):
+            try:
+                response = self._http.request(method, url, params=query, json=json, headers=headers)
+            except httpx.TimeoutException as exc:
+                if attempt >= self._config.max_retries:
+                    raise APITimeoutError(
+                        f"{method} {url} timed out after {attempt + 1} attempt(s)."
+                    ) from exc
+                time.sleep(_retry_delay(attempt, None))
+                continue
+            except httpx.TransportError as exc:
+                if attempt >= self._config.max_retries:
+                    raise APIConnectionError(f"{method} {url} failed: {exc}") from exc
+                time.sleep(_retry_delay(attempt, None))
+                continue
+
+            if self._should_retry(attempt, response.status_code):
+                time.sleep(_retry_delay(attempt, response))
+                continue
+            return self._finish(response, method, url)
+
+        raise APIConnectionError(f"{method} {url} exhausted all retries.")  # pragma: no cover
+
+    def close(self) -> None:
+        if self._owns_client:
+            self._http.close()
+
+
+class AsyncTransport(_BaseTransport):
+    """Non-blocking transport backed by :class:`httpx.AsyncClient`."""
+
+    def __init__(self, config: ClientConfig, http_client: httpx.AsyncClient | None = None) -> None:
+        super().__init__(config)
+        self._owns_client = http_client is None
+        self._http = http_client or httpx.AsyncClient(timeout=config.timeout, follow_redirects=True)
+
+    async def request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: Mapping[str, Any] | None = None,
+        json: Any = None,
+        versioned: bool = True,
+    ) -> Any:
+        url = self._config.url_for(path, versioned)
+        headers = self._config.headers()
+        query = _clean_params(params)
+
+        for attempt in range(self._config.max_retries + 1):
+            try:
+                response = await self._http.request(
+                    method, url, params=query, json=json, headers=headers
+                )
+            except httpx.TimeoutException as exc:
+                if attempt >= self._config.max_retries:
+                    raise APITimeoutError(
+                        f"{method} {url} timed out after {attempt + 1} attempt(s)."
+                    ) from exc
+                await asyncio.sleep(_retry_delay(attempt, None))
+                continue
+            except httpx.TransportError as exc:
+                if attempt >= self._config.max_retries:
+                    raise APIConnectionError(f"{method} {url} failed: {exc}") from exc
+                await asyncio.sleep(_retry_delay(attempt, None))
+                continue
+
+            if self._should_retry(attempt, response.status_code):
+                await asyncio.sleep(_retry_delay(attempt, response))
+                continue
+            return self._finish(response, method, url)
+
+        raise APIConnectionError(f"{method} {url} exhausted all retries.")  # pragma: no cover
+
+    async def aclose(self) -> None:
+        if self._owns_client:
+            await self._http.aclose()
+
+
+class SyncResource:
+    """Base class for blocking resource namespaces."""
+
+    def __init__(self, transport: SyncTransport) -> None:
+        self._transport = transport
+
+    def _get(self, path: str, **kwargs: Any) -> Any:
+        return self._transport.request("GET", path, **kwargs)
+
+    def _post(self, path: str, **kwargs: Any) -> Any:
+        return self._transport.request("POST", path, **kwargs)
+
+
+class AsyncResource:
+    """Base class for awaitable resource namespaces."""
+
+    def __init__(self, transport: AsyncTransport) -> None:
+        self._transport = transport
+
+    async def _get(self, path: str, **kwargs: Any) -> Any:
+        return await self._transport.request("GET", path, **kwargs)
+
+    async def _post(self, path: str, **kwargs: Any) -> Any:
+        return await self._transport.request("POST", path, **kwargs)
+
+
+def _seg(value: str, name: str) -> str:
+    """Validate and percent-encode a value being interpolated into a URL path.
+
+    Empty segments would silently collapse the path onto a different endpoint,
+    and officer ids are opaque upstream tokens, so both are checked and quoted
+    rather than trusted.
+    """
+    if value is None or not str(value).strip():
+        raise ValueError(f"{name} must be a non-empty string")
+    return quote(str(value).strip(), safe="")
+
+
+def _names_body(names: Sequence[str], *, limit: int | None = None) -> dict[str, Any]:
+    """Build the ``{"names": [...]}`` body used by the batch screening endpoints."""
+    cleaned = [str(n).strip() for n in names if str(n).strip()]
+    if not cleaned:
+        raise ValueError("names must contain at least one non-empty string")
+    if limit is not None and len(cleaned) > limit:
+        raise ValueError(f"names accepts at most {limit} entries, got {len(cleaned)}")
+    return {"names": cleaned}

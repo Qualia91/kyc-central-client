@@ -1,0 +1,227 @@
+/** Client construction, headers, URL building and retry behaviour. */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  APIConnectionError,
+  APITimeoutError,
+  DEFAULT_BASE_URL,
+  KYCCentral,
+  NotFoundError,
+} from '../src/index.js';
+import { BASE_URL, jsonResponse, mockFetch } from './helpers.js';
+
+describe('construction', () => {
+  const originalKey = process.env.KYCCENTRAL_API_KEY;
+  const originalBase = process.env.KYCCENTRAL_BASE_URL;
+
+  beforeEach(() => {
+    delete process.env.KYCCENTRAL_API_KEY;
+    delete process.env.KYCCENTRAL_BASE_URL;
+  });
+
+  afterEach(() => {
+    if (originalKey === undefined) delete process.env.KYCCENTRAL_API_KEY;
+    else process.env.KYCCENTRAL_API_KEY = originalKey;
+    if (originalBase === undefined) delete process.env.KYCCENTRAL_BASE_URL;
+    else process.env.KYCCENTRAL_BASE_URL = originalBase;
+  });
+
+  it('defaults to the production base URL and anonymous access', () => {
+    const client = new KYCCentral();
+    expect(client.baseUrl).toBe(DEFAULT_BASE_URL);
+    expect(client.isAuthenticated).toBe(false);
+  });
+
+  it('reads credentials from the environment', () => {
+    process.env.KYCCENTRAL_API_KEY = 'env-key';
+    process.env.KYCCENTRAL_BASE_URL = 'https://dev-api.test.invalid/';
+    const client = new KYCCentral();
+    expect(client.isAuthenticated).toBe(true);
+    // Trailing slash is normalised away so path joins never double up.
+    expect(client.baseUrl).toBe('https://dev-api.test.invalid');
+  });
+
+  it('prefers explicit options over the environment', () => {
+    process.env.KYCCENTRAL_API_KEY = 'env-key';
+    const client = new KYCCentral({ apiKey: 'explicit', baseUrl: BASE_URL });
+    expect(client.baseUrl).toBe(BASE_URL);
+  });
+
+  it.each([
+    ['timeoutMs', { timeoutMs: 0 }],
+    ['negative timeoutMs', { timeoutMs: -1 }],
+    ['maxRetries', { maxRetries: -1 }],
+  ])('rejects invalid %s', (_label, options) => {
+    expect(() => new KYCCentral(options)).toThrow();
+  });
+});
+
+describe('requests', () => {
+  it('sends the API key and an Accept header', async () => {
+    const fetch = mockFetch([jsonResponse([])]);
+    const client = new KYCCentral({ apiKey: 'test-key', baseUrl: BASE_URL, fetch });
+
+    await client.ruleSets.list();
+
+    const [, init] = fetch.mock.calls[0]!;
+    const headers = init!.headers as Record<string, string>;
+    expect(headers['X-API-Key']).toBe('test-key');
+    expect(headers['Accept']).toBe('application/json');
+  });
+
+  it('omits the API key header when anonymous', async () => {
+    const fetch = mockFetch([jsonResponse({})]);
+    const client = new KYCCentral({ baseUrl: BASE_URL, fetch });
+
+    await client.jurisdictions.list();
+
+    const headers = fetch.mock.calls[0]![1]!.headers as Record<string, string>;
+    expect(headers['X-API-Key']).toBeUndefined();
+  });
+
+  it('sets Content-Type only when there is a body', async () => {
+    const fetch = mockFetch([jsonResponse({}), jsonResponse({})]);
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch });
+
+    await client.sanctions.status();
+    expect(
+      (fetch.mock.calls[0]![1]!.headers as Record<string, string>)['Content-Type'],
+    ).toBeUndefined();
+
+    await client.sanctions.screenNames(['Alice Example']);
+    expect((fetch.mock.calls[1]![1]!.headers as Record<string, string>)['Content-Type']).toBe(
+      'application/json',
+    );
+  });
+
+  it('versions business endpoints but not /health', async () => {
+    const fetch = mockFetch([jsonResponse({ status: 'ok' }), jsonResponse([])]);
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch });
+
+    await client.health();
+    expect(fetch.mock.calls[0]![0]).toBe(`${BASE_URL}/health`);
+
+    await client.ruleSets.list();
+    expect(fetch.mock.calls[1]![0]).toBe(`${BASE_URL}/v1/rule-sets`);
+  });
+
+  it('drops unset query parameters', async () => {
+    const fetch = mockFetch([jsonResponse({ items: [] })]);
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch });
+
+    await client.companies.search('tesco');
+
+    const url = new URL(fetch.mock.calls[0]![0]);
+    expect(url.searchParams.get('q')).toBe('tesco');
+    expect(url.searchParams.has('items_per_page')).toBe(false);
+    expect(url.searchParams.has('start_index')).toBe(false);
+  });
+
+  it('repeats array parameters once per value', async () => {
+    const fetch = mockFetch([jsonResponse({ company_number: '00445790', flags: [] })]);
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch });
+
+    await client.kyc.assess('00445790', {
+      confirmedMediaUrls: ['https://a.example', 'https://b.example'],
+    });
+
+    const url = new URL(fetch.mock.calls[0]![0]);
+    expect(url.searchParams.getAll('confirmed_media_url')).toEqual([
+      'https://a.example',
+      'https://b.example',
+    ]);
+  });
+
+  it('percent-encodes path segments', async () => {
+    const fetch = mockFetch([jsonResponse({})]);
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch });
+
+    // Officer ids are opaque upstream tokens and can contain URL-significant bytes.
+    await client.companies.officerAppointments('abc/def+gh');
+
+    expect(fetch.mock.calls[0]![0]).toContain('abc%2Fdef%2Bgh');
+  });
+
+  it.each(['', '   '])('rejects blank path segments (%j)', async (blank) => {
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch: mockFetch([]) });
+    await expect(client.companies.get(blank)).rejects.toThrow(/companyNumber/);
+  });
+
+  it('sends custom default headers', async () => {
+    const fetch = mockFetch([jsonResponse([])]);
+    const client = new KYCCentral({
+      apiKey: 'k',
+      baseUrl: BASE_URL,
+      fetch,
+      defaultHeaders: { 'X-Trace': 'abc' },
+    });
+
+    await client.ruleSets.list();
+
+    expect((fetch.mock.calls[0]![1]!.headers as Record<string, string>)['X-Trace']).toBe('abc');
+  });
+});
+
+describe('retries', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('retries retryable statuses then succeeds', async () => {
+    const fetch = mockFetch([
+      jsonResponse({ detail: 'warming up' }, 503),
+      jsonResponse([{ id: 'default' }]),
+    ]);
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch, maxRetries: 2 });
+
+    await expect(client.ruleSets.list()).resolves.toEqual([{ id: 'default' }]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry client errors', async () => {
+    const fetch = mockFetch([jsonResponse({ detail: 'Company not found' }, 404)]);
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch, maxRetries: 3 });
+
+    await expect(client.companies.get('99999999')).rejects.toBeInstanceOf(NotFoundError);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces connection errors after exhausting retries', async () => {
+    const fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch, maxRetries: 1 });
+
+    await expect(client.ruleSets.list()).rejects.toBeInstanceOf(APIConnectionError);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports timeouts distinctly from other connection failures', async () => {
+    const timeout = new Error('The operation was aborted due to timeout');
+    timeout.name = 'TimeoutError';
+    const fetch = vi.fn().mockRejectedValue(timeout);
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch, maxRetries: 0 });
+
+    await expect(client.ruleSets.list()).rejects.toBeInstanceOf(APITimeoutError);
+  });
+
+  it('does not retry a caller-initiated abort', async () => {
+    const controller = new AbortController();
+    const fetch = vi.fn().mockImplementation(() => {
+      controller.abort();
+      const error = new Error('aborted');
+      error.name = 'AbortError';
+      return Promise.reject(error);
+    });
+    const client = new KYCCentral({ apiKey: 'k', baseUrl: BASE_URL, fetch, maxRetries: 3 });
+
+    await expect(client.ruleSets.list({ signal: controller.signal })).rejects.toBeInstanceOf(
+      APITimeoutError,
+    );
+    // An intentional cancellation must not be retried into three more requests.
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});

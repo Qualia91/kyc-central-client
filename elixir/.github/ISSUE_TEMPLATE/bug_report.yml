@@ -1,0 +1,52 @@
+name: Bug report
+description: Something in the client behaves incorrectly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before you post:** remove your API key and any real company or personal data
+        from the snippets below. This library handles data about identifiable people,
+        and inspecting a `%KYCCentral{}` struct prints your key.
+
+        Found a security issue? Report it privately — see [SECURITY.md](../blob/main/SECURITY.md).
+
+  - type: input
+    id: version
+    attributes:
+      label: Client version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: elixir
+    attributes:
+      label: Elixir and OTP versions
+      description: Output of `elixir --version`.
+      placeholder: "Elixir 1.18.4 / OTP 27"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what did you get instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: The smallest snippet that shows the problem.
+      render: elixir
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Returned error or stacktrace
+      render: text

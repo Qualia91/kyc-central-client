@@ -1,0 +1,58 @@
+name: Bug report
+description: Something in the client behaves incorrectly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before you post:** remove your API key and any real company or personal data
+        from the snippets below. This library handles data about identifiable people.
+
+        Found a security issue? Report it privately — see [SECURITY.md](../blob/main/SECURITY.md).
+
+  - type: input
+    id: version
+    attributes:
+      label: Client version
+      placeholder: '0.1.0'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime
+      options: [Node.js, Deno, Bun, Cloudflare Workers, Browser, Other]
+    validations:
+      required: true
+
+  - type: input
+    id: runtime-version
+    attributes:
+      label: Runtime version
+      placeholder: 'Node 22.2.0'
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what did you get instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: The smallest snippet that shows the problem.
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Error or output
+      render: text
