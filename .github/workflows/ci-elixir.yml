@@ -10,13 +10,12 @@ on:
       - "elixir/**"
   workflow_dispatch:
 
-concurrency:
-  group: ci-elixir-${{ matrix.elixir-version }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-elixir-${{ matrix.elixir-version }}-${{ github.ref }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:

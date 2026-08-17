@@ -10,13 +10,12 @@ on:
       - "javascript/**"
   workflow_dispatch:
 
-concurrency:
-  group: ci-js-${{ matrix.node-version }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-js-${{ matrix.node-version }}-${{ github.ref }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:

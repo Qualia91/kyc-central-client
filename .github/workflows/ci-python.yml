@@ -10,14 +10,13 @@ on:
       - "python/**"
   workflow_dispatch:
 
-# The publish workflow runs the same matrix, so keep it in sync.
-concurrency:
-  group: ci-python-${{ matrix.python-version }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ubuntu-latest
+    # The publish workflow runs the same matrix, so keep it in sync.
+    concurrency:
+      group: ci-python-${{ matrix.python-version }}-${{ github.ref }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:

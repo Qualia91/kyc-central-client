@@ -17,14 +17,13 @@ on:
     tags:
       - "v*"
 
-# Don't cancel in-progress publishes — a cancelled release leaves things half-done.
-concurrency:
-  group: publish-${{ matrix.language }}
-  cancel-in-progress: false
-
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Don't cancel in-progress publishes — a cancelled release leaves things half-done.
+    concurrency:
+      group: publish-${{ matrix.language }}
+      cancel-in-progress: false
     # 'id-token: write' lets npm exchange the GitHub OIDC token for a short-lived
     # npm token via trusted publishing (no NPM_TOKEN secret required).
     permissions:
