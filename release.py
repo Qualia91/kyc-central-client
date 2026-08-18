@@ -70,19 +70,20 @@ def bump_version(version: str) -> tuple[int, int, int]:
 
 
 def python_version_file(path: Path, version: str) -> None:
-    text = path.read_text().replace('__version__ = "0.4.0"', f'__version__ = "{version}"')
+    text = path.read_text()
+    text = re.sub(r'__version__ = "[^"]+"', f'__version__ = "{version}"', text)
     path.write_text(text)
 
 
 def js_package_json(path: Path, version: str) -> None:
     text = path.read_text()
-    text = text.replace('"version": "0.4.0"', f'"version": "{version}"')
+    text = re.sub(r'"version": "[^"]+"', f'"version": "{version}"', text, count=1)
     path.write_text(text)
 
 
 def elixir_mix_exs(path: Path, version: str) -> None:
     text = path.read_text()
-    text = text.replace('@version "0.4.0"', f'@version "{version}"')
+    text = re.sub(r'@version "[^"]+"', f'@version "{version}"', text)
     path.write_text(text)
 
 
@@ -93,13 +94,8 @@ def npm_lockjack(path: Path, version: str) -> None:
     so `npm install`/`npm publish` stays consistent with the package.json.
     """
     text = path.read_text()
-    # Root version (there may be many "version" keys — only change the top-level
-    # one that matches the stale value.  We target lines that start with spaces
-    # at the very beginning of a JSON object value after the leading "":.
-    # Simple approach: replace any occurrence of the exact stale string.
-    text = text.replace('"version": "0.1.0"', f'"version": "{version}"')
-    # Also fix engines if it still says ">=0.4.0" (harmless but tidy)
-    text = text.replace('"node": ">=0.4.0"', f'"node": ">= {version.split(".")[0]}.{version.split(".")[1]}"')
+    # Root version: replace the first two occurrences (top-level + packages[""])
+    text = re.sub(r'"version": "[^"]+"', f'"version": "{version}"', text, count=2)
     path.write_text(text)
 
 
