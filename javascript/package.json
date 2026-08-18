@@ -14,10 +14,10 @@
     "typescript"
   ],
   "homepage": "https://kyccentral.co.uk",
-  "bugs": "https://github.com/qualia91/kyccentral-js/issues",
+  "bugs": "https://github.com/Qualia91/kyccentral-js/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/qualia91/kyc-central-client.git"
+    "url": "git+https://github.com/Qualia91/kyc-central-client.git"
   },
   "license": "MIT",
   "author": "KYC Central <support@kyccentral.co.uk>",
