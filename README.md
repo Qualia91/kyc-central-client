@@ -11,6 +11,19 @@ a public repository without rearranging anything.
 | JavaScript / TypeScript | [`javascript/`](javascript) | [`@kyccentral/sdk`](https://www.npmjs.com/package/@kyccentral/sdk) | [kyccentral-js](https://github.com/qualia91/kyccentral-js) |
 | Elixir / Erlang | [`elixir/`](elixir) | [`kyccentral`](https://hex.pm/packages/kyccentral) | [kyccentral-elixir](https://github.com/qualia91/kyccentral-elixir) |
 
+<!-- badges:start -->
+## Badges
+
+| Status | Badge |
+|---|---|
+| CI | [![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-python.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-python.yml) · [![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-javascript.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-javascript.yml) · [![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-elixir.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-elixir.yml) · [![Publish](https://github.com/qualia91/kyc-central-client/actions/workflows/publish.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/publish.yml) |
+| Code Coverage | [![Codecov](https://codecov.io/gh/qualia91/kyc-central-client/branch/main/graph/badge.svg)](https://codecov.io/gh/qualia91/kyc-central-client) |
+| Package Versions | [![PyPI](https://img.shields.io/pypi/v/kyccentral.svg)](https://pypi.org/project/kyccentral/) · [![npm](https://img.shields.io/npm/v/@kyccentral/sdk.svg)](https://www.npmjs.com/package/@kyccentral/sdk) · [![Hex.pm](https://img.shields.io/hexpm/v/kyccentral.svg)](https://hex.pm/packages/kyccentral) |
+| Supported Platforms | [![Python](https://img.shields.io/pypi/pyversions/kyccentral.svg)](https://pypi.org/project/kyccentral/) · [![Node](https://img.shields.io/badge/node.js-18-green.svg)](https://nodejs.org/) · [![Elixir](https://img.shields.io/hexpm/v/kyccentral.svg)](https://hex.pm/packages/kyccentral) |
+| Code Quality | [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff-badge/main/badge.svg)](https://astral.sh/ruff) · [![ESLint](https://img.shields.io/badge/ESLint-F7DF1E.svg?logo=eslint&logoColor=black)](https://eslint.org/) · [![Credo](https://img.shields.io/badge/Credo-009241.svg?logo=elixir&logoColor=white)](https://github.com/rrrene/credo) · [![TypeScript](https://badgen.net/typescript/definition/@kyccentral/sdk)]() |
+| Community | [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=flat-square)](https://github.com/qualia91/kyc-central-client/pulls) · [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT) · [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://www.contributor-covenant.org/version/2/1/0/) · [![Security Policy](https://img.shields.io/badge/security%20policy-enabled-brightgreen.svg)](https://github.com/qualia91/kyc-central-client/blob/main/SECURITY.md) |
+<!-- badges:end -->
+
 ## Why they live here
 
 All three clients are generated from the same live OpenAPI schema, so a single API
@@ -91,25 +104,3 @@ repository). When a public endpoint is added, changed or removed in the backend:
 
 Endpoints registered with `include_in_schema=False` are internal (billing, workspaces,
 PDF, admin, investigator) and are deliberately **not** covered.
-
-## CI
-
-Path-filtered workflows under `.github/workflows/` ensure a change to one client only
-runs that client's checks:
-
-| Workflow | Paths | What it runs |
-|---|---|---|
-| `ci-python.yml` | `python/**` | pytest, ruff, mypy on Python 3.10–3.13 |
-| `ci-javascript.yml` | `javascript/**` | test, typecheck, lint, format, build on Node 18/20/22 |
-| `ci-elixir.yml` | `elixir/**` | mix test, format, credo, dialyzer |
-
-You can trigger any of them manually with **Run workflow** → `workflow_dispatch`.
-
-## Publishing
-
-Releasing all three clients from a single `vX.Y.Z` tag is documented in
-[PUBLISHING.md](PUBLISHING.md), including the one-time registry setup (PyPI trusted
-publishing, npm trusted publishing, Hex API key) and the per-release checklist.
-In short: bump the version in each client, update the `## Unreleased` changelog entries,
-commit, tag `vX.Y.Z`, and push the tag — the publish workflow verifies each changed client and
-publishes it automatically.
