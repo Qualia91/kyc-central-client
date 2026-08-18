@@ -45,6 +45,8 @@ dev = [
     "respx>=0.20",
     "mypy>=1.8",
     "ruff>=0.4",
+    "pytest-cov",
+    "pip-audit",
 ]
 
 [project.urls]
@@ -68,6 +70,15 @@ include = ["src/kyccentral", "tests", "README.md", "LICENSE", "CHANGELOG.md"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 filterwarnings = ["error"]
+addopts = ["--cov=kyccentral", "--cov-report=term-missing", "--cov-report=xml"]
+
+[tool.coverage.run]
+source = ["kyccentral"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
 
 [tool.ruff]
 line-length = 100
@@ -76,6 +87,7 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+
 ignore = [
     # The API mirrors upstream registry payloads; `dict[str, Any]` aliases are
     # deliberate rather than lazy typing.

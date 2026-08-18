@@ -18,14 +18,15 @@ defmodule KYCCentral.MixProject do
       docs: docs(),
       name: "KYC Central",
       source_url: @source_url,
-      dialyzer: [plt_add_apps: [:mix]]
+      dialyzer: [plt_add_apps: [:mix]],
+      test_coverage: [tool: ExCoveralls, test_task: "test"]
     ]
   end
 
   def application do
     # :inets and :ssl back the default HTTP transport; both ship with OTP, which
     # is why this library needs no HTTP client dependency of its own.
-    [extra_applications: [:logger, :inets, :ssl, :public_key]]
+    [extra_applications: [:logger, :inets, :ssl, :public_key, :excoveralls]]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
@@ -39,6 +40,7 @@ defmodule KYCCentral.MixProject do
       {:jason, "~> 1.4"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: :dev, runtime: false},
+      {:excoveralls, "~> 0.18", only: :test, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
