@@ -4,14 +4,14 @@ on:
   push:
     branches: [main]
     paths:
-      - "javascript/**"
+      - 'javascript/**'
   pull_request:
     paths:
-      - "javascript/**"
+      - 'javascript/**'
   workflow_dispatch:
 
 jobs:
-  test:
+  javascript-test:
     runs-on: ubuntu-latest
     concurrency:
       group: ci-js-${{ matrix.node-version }}-${{ github.ref }}

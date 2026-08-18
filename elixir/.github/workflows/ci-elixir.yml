@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  elixir-test:
     runs-on: ubuntu-latest
     concurrency:
       group: ci-elixir-${{ matrix.elixir-version }}-${{ github.ref }}

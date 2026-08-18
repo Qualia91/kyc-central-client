@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  python-test:
     runs-on: ubuntu-latest
     # The publish workflow runs the same matrix, so keep it in sync.
     concurrency:
