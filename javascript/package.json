@@ -14,7 +14,7 @@
     "typescript"
   ],
   "homepage": "https://kyccentral.co.uk",
-  "bugs": "https://github.com/Qualia91/kyccentral-js/issues",
+  "bugs": "https://github.com/Qualia91/kyc-central-client/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Qualia91/kyc-central-client.git"
