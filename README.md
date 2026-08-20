@@ -22,7 +22,7 @@ licence, changelog, CI, issue templates and release workflow — so it can be sp
 a public repository without rearranging anything.
 
 | Language | Directory | Package |
-|---|---|---|---|
+|---|---|---|
 | Python | [`python/`](python) | [`kyccentral`](https://pypi.org/project/kyccentral/) |
 | JavaScript / TypeScript | [`javascript/`](javascript) | [`@kyccentral/sdk`](https://www.npmjs.com/package/@kyccentral/sdk) |
 | Elixir / Erlang | [`elixir/`](elixir) | [`kyccentral`](https://hex.pm/packages/kyccentral) |
