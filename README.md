@@ -21,11 +21,11 @@ language. Each directory is a **self-contained repository root** — its own REA
 licence, changelog, CI, issue templates and release workflow — so it can be split out to
 a public repository without rearranging anything.
 
-| Language | Directory | Package | Public repository |
+| Language | Directory | Package |
 |---|---|---|---|
-| Python | [`python/`](python) | [`kyccentral`](https://pypi.org/project/kyccentral/) | [kyccentral-python](https://github.com/qualia91/kyccentral-python) |
-| JavaScript / TypeScript | [`javascript/`](javascript) | [`@kyccentral/sdk`](https://www.npmjs.com/package/@kyccentral/sdk) | [kyccentral-js](https://github.com/qualia91/kyccentral-js) |
-| Elixir / Erlang | [`elixir/`](elixir) | [`kyccentral`](https://hex.pm/packages/kyccentral) | [kyccentral-elixir](https://github.com/qualia91/kyccentral-elixir) |
+| Python | [`python/`](python) | [`kyccentral`](https://pypi.org/project/kyccentral/) |
+| JavaScript / TypeScript | [`javascript/`](javascript) | [`@kyccentral/sdk`](https://www.npmjs.com/package/@kyccentral/sdk) |
+| Elixir / Erlang | [`elixir/`](elixir) | [`kyccentral`](https://hex.pm/packages/kyccentral) |
 
 <!-- badges:start -->
 ## Badges
