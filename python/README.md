@@ -6,7 +6,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/kyccentral.svg)](https://pypi.org/project/kyccentral/)
 [![Python versions](https://img.shields.io/pypi/pyversions/kyccentral.svg)](https://pypi.org/project/kyccentral/)
-[![CI](https://github.com/qualia91/kyccentral-python/actions/workflows/ci.yml/badge.svg)](https://github.com/qualia91/kyccentral-python/actions/workflows/ci.yml)
+[![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-python.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-python.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [Website](https://kyccentral.co.uk) · [API reference](https://kyccentral.co.uk/api-docs) · [Get an API key](https://kyccentral.co.uk/account) · [Other clients](#other-languages)

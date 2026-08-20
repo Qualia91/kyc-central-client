@@ -4,6 +4,26 @@ coverage:
       default:
         target: 80%
         threshold: 1%
+        flags:
+          - python
+          - javascript
+          - elixir
+      python:
+        target: 80%
+        threshold: 1%
+        flags: [python]
+      javascript:
+        target: 80%
+        threshold: 1%
+        flags: [javascript]
+      elixir:
+        target: 80%
+        threshold: 1%
+        flags: [elixir]
     patch:
       default:
         target: 80%
+        flags:
+          - python
+          - javascript
+          - elixir

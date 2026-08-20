@@ -5,7 +5,7 @@
 **UK company KYC and AML risk assessment, from one API call.**
 
 [![npm](https://img.shields.io/npm/v/@kyccentral/sdk.svg)](https://www.npmjs.com/package/@kyccentral/sdk)
-[![CI](https://github.com/qualia91/kyccentral-js/actions/workflows/ci.yml/badge.svg)](https://github.com/qualia91/kyccentral-js/actions/workflows/ci.yml)
+[![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-javascript.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-javascript.yml)
 [![Types](https://img.shields.io/npm/types/@kyccentral/sdk.svg)](https://www.npmjs.com/package/@kyccentral/sdk)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 

@@ -42,8 +42,8 @@ jobs:
         run: mix deps.get
         working-directory: elixir
 
-      - name: Run tests
-        run: mix test
+      - name: Run tests with coverage
+        run: mix coveralls.json
         working-directory: elixir
 
       - name: Format check
@@ -57,3 +57,10 @@ jobs:
       - name: Dialyzer
         run: mix dialyzer
         working-directory: elixir
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: elixir/cover/excoveralls.json
+          flags: elixir
+          fail_ci_if_error: false

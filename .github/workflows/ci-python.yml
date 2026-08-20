@@ -53,3 +53,10 @@ jobs:
       - name: Type check
         run: mypy
         working-directory: python
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: python/coverage.xml
+          flags: python
+          fail_ci_if_error: false

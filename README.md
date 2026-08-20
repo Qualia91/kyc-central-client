@@ -1,4 +1,12 @@
-# Official API clients
+<a href="https://kyccentral.co.uk">
+  <h1 style="display: flex; align-items: center;">
+    <img src="assets/site_icon.png" alt="Icon" width="100"  style="vertical-align: middle; margin-right: 10px;">
+    <span>
+      KYC Central<br>
+      Official API clients
+    </span>
+  </h1>
+</a>
 
 Open-source client libraries for the [KYC Central](https://kyccentral.co.uk) API, one per
 language. Each directory is a **self-contained repository root** — its own README,
@@ -16,11 +24,11 @@ a public repository without rearranging anything.
 
 | Status | Badge |
 |---|---|
-| CI | [![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-python.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-python.yml) · [![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-javascript.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-javascript.yml) · [![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-elixir.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-elixir.yml) · [![Publish](https://github.com/qualia91/kyc-central-client/actions/workflows/publish.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/publish.yml) |
+| CI | [![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-python.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-python.yml) · [![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-javascript.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-javascript.yml) · [![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-elixir.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-elixir.yml) |
 | Code Coverage | [![Codecov](https://codecov.io/gh/qualia91/kyc-central-client/branch/main/graph/badge.svg)](https://codecov.io/gh/qualia91/kyc-central-client) |
 | Package Versions | [![PyPI](https://img.shields.io/pypi/v/kyccentral.svg)](https://pypi.org/project/kyccentral/) · [![npm](https://img.shields.io/npm/v/@kyccentral/sdk.svg)](https://www.npmjs.com/package/@kyccentral/sdk) · [![Hex.pm](https://img.shields.io/hexpm/v/kyccentral.svg)](https://hex.pm/packages/kyccentral) |
-| Supported Platforms | [![Python](https://img.shields.io/pypi/pyversions/kyccentral.svg)](https://pypi.org/project/kyccentral/) · [![Node](https://img.shields.io/badge/node.js-18-green.svg)](https://nodejs.org/) · [![Elixir](https://img.shields.io/hexpm/v/kyccentral.svg)](https://hex.pm/packages/kyccentral) |
-| Code Quality | [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff-badge/main/badge.svg)](https://astral.sh/ruff) · [![ESLint](https://img.shields.io/badge/ESLint-F7DF1E.svg?logo=eslint&logoColor=black)](https://eslint.org/) · [![Credo](https://img.shields.io/badge/Credo-009241.svg?logo=elixir&logoColor=white)](https://github.com/rrrene/credo) · [![TypeScript](https://badgen.net/typescript/definition/@kyccentral/sdk)]() |
+| Supported Platforms | [![Python](https://img.shields.io/pypi/pyversions/kyccentral.svg)](https://pypi.org/project/kyccentral/) · [![Node](https://img.shields.io/badge/node.js-%3E%3D18-339933.svg?logo=node.js&logoColor=white)](https://www.npmjs.com/package/@kyccentral/sdk) · [![Elixir](https://img.shields.io/badge/elixir-%3E%3D1.15-4B275F.svg?logo=elixir&logoColor=white)](https://hex.pm/packages/kyccentral) |
+| Code Quality | [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff-badge/main/badge.json)](https://astral.sh/ruff) · [![ESLint](https://img.shields.io/badge/ESLint-F7DF1E.svg?logo=eslint&logoColor=black)](https://eslint.org/) · [![Credo](https://img.shields.io/badge/Credo-009241.svg?logo=elixir&logoColor=white)](https://github.com/rrrene/credo) · [![TypeScript](https://badgen.net/typescript/definition/@kyccentral/sdk)](https://www.npmjs.com/package/@kyccentral/sdk) |
 | Community | [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=flat-square)](https://github.com/qualia91/kyc-central-client/pulls) · [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT) · [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://www.contributor-covenant.org/version/2/1/0/) · [![Security Policy](https://img.shields.io/badge/security%20policy-enabled-brightgreen.svg)](https://github.com/qualia91/kyc-central-client/blob/main/SECURITY.md) |
 <!-- badges:end -->
 

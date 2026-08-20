@@ -35,8 +35,8 @@ jobs:
         run: npm ci
         working-directory: javascript
 
-      - name: Run tests
-        run: npm test
+      - name: Run tests with coverage
+        run: npm run test:coverage
         working-directory: javascript
 
       - name: Type check
@@ -54,3 +54,10 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: javascript
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: javascript/coverage/lcov.info
+          flags: javascript
+          fail_ci_if_error: false

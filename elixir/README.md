@@ -6,7 +6,7 @@
 
 [![Hex.pm](https://img.shields.io/hexpm/v/kyccentral.svg)](https://hex.pm/packages/kyccentral)
 [![Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/kyccentral)
-[![CI](https://github.com/qualia91/kyccentral-elixir/actions/workflows/ci.yml/badge.svg)](https://github.com/qualia91/kyccentral-elixir/actions/workflows/ci.yml)
+[![CI](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-elixir.yml/badge.svg)](https://github.com/qualia91/kyc-central-client/actions/workflows/ci-elixir.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [Website](https://kyccentral.co.uk) · [API reference](https://kyccentral.co.uk/api-docs) · [Get an API key](https://kyccentral.co.uk/account) · [Other clients](#other-languages)
