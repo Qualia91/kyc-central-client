@@ -1,12 +1,20 @@
-<a href="https://kyccentral.co.uk">
-  <h1 style="display: flex; align-items: center;">
-    <img src="assets/site_icon.png" alt="Icon" width="100"  style="vertical-align: middle; margin-right: 10px;">
-    <span>
-      KYC Central<br>
-      Official API clients
-    </span>
-  </h1>
-</a>
+<table>
+  <tr>
+    <td valign="middle">
+      <a href="https://kyccentral.co.uk">
+        <img src="assets/site_icon.png" alt="Icon" width="100">
+      </a>
+    </td>
+    <td valign="middle">
+      <a href="https://kyccentral.co.uk">
+        <h1>
+          KYC Central<br>
+          Official API clients
+        </h1>
+      </a>
+    </td>
+  </tr>
+</table>
 
 Open-source client libraries for the [KYC Central](https://kyccentral.co.uk) API, one per
 language. Each directory is a **self-contained repository root** — its own README,
